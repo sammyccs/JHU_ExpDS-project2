@@ -1,0 +1,37 @@
+#6. Compare emissions from motor vehicle sources in Baltimore City with emissions from motor vehicle sources in Los Angeles County, California (fips == "06037"). Which city has seen greater changes over time in motor vehicle emissions?
+
+#Loading files
+NEI <- readRDS("summarySCC_PM25.rds")
+SCC <- readRDS("Source_Classification_Code.rds")
+
+NEI$year <- factor(NEI$year, levels = c('1999', '2002', '2005', '2008'))
+
+# Subsetting data to Baltimore City, Maryland: BC and to Los Angeles County, California: LA
+BC.onroad <- subset(NEI, fips == '24510' & type == 'ON-ROAD')
+LA.onroad <- subset(NEI, fips == '06037' & type == 'ON-ROAD')
+
+# Aggregating the data for Baltimore City, Maryland: BC, and Los Angeles County, California: LA, 
+BC.DF <- aggregate(BC.onroad[, 'Emissions'], by = list(BC.onroad$year), sum)
+colnames(BC.DF) <- c('year', 'Emissions')
+BC.DF$City <- paste(rep('BC', 4))
+
+LA.DF <- aggregate(LA.onroad[, 'Emissions'], by = list(LA.onroad$year), sum)
+colnames(LA.DF) <- c('year', 'Emissions')
+LA.DF$City <- paste(rep('LA', 4))
+
+DF <- as.data.frame(rbind(BC.DF, LA.DF))
+
+# Generating the plot
+library(ggplot2)
+
+png('plot6.png')
+p <- ggplot(data = DF, aes(x = year, y = Emissions)) + 
+    geom_bar(aes(fill = year),stat = "identity") + 
+    coord_flip() + 
+    facet_grid(. ~ City) + 
+   labs(title="Total Emissions of Motor Vehicle Sources\nBaltimore City, Maryland vs Los Angeles County, California", y = "PM2.5 in Kilotons", x = "Years" ) + 
+   theme(legend.position = "none") + 
+    geom_text(aes(label = round(Emissions, 1), size = 3, hjust = 0.5, vjust = -1)) 
+print(p)
+dev.off()
+
